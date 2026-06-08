@@ -61,12 +61,13 @@ export interface ExchangeOrder {
   productName: string;
   productImage: string;
   pointsCost: number;
-  status: "pending" | "shipped" | "delivered";
+  status: "pending" | "shipped" | "delivered" | "cancelled";
   trackingNumber: string | null;
   pickupInfo: PickupInfo | null;
   createdAt: string;
   shippedAt?: string | null;
   deliveredAt?: string | null;
+  cancelledAt?: string | null;
 }
 
 export interface CommunityEvent {
