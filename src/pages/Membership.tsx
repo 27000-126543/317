@@ -29,13 +29,17 @@ const NotificationCard = () => {
 
 export default function Membership() {
   const currentUser = useStore((s) => s.currentUser);
+  const userRewardMap = useStore((s) => s.userRewardMap);
+  const reward = userRewardMap[currentUser.id];
+  const displayPoints = currentUser.points + (reward?.points || 0);
+  const displayWeight = currentUser.totalRecycledWeight + (reward?.weight || 0);
   const currentLevel = MEMBER_LEVELS[currentUser.memberLevel];
   const levelIndex = LEVEL_ORDER.indexOf(currentUser.memberLevel);
   const isMaxLevel = levelIndex === LEVEL_ORDER.length - 1;
   const nextLevel = isMaxLevel ? null : MEMBER_LEVELS[LEVEL_ORDER[levelIndex + 1]];
 
   const weightProgress = nextLevel
-    ? Math.min((currentUser.totalRecycledWeight / nextLevel.minWeight) * 100, 100)
+    ? Math.min((displayWeight / nextLevel.minWeight) * 100, 100)
     : 100;
   const activityProgress = nextLevel
     ? Math.min((currentUser.activity / nextLevel.minActivity) * 100, 100)
@@ -46,8 +50,8 @@ export default function Membership() {
   const activeBenefitSet = new Set(currentBenefits);
 
   const stats = [
-    { icon: Recycle, label: "总回收量", value: `${currentUser.totalRecycledWeight}kg` },
-    { icon: Star, label: "总积分", value: currentUser.points },
+    { icon: Recycle, label: "总回收量", value: `${displayWeight}kg` },
+    { icon: Star, label: "总积分", value: displayPoints },
     { icon: Shield, label: "环保贡献等级", value: currentLevel.label },
     { icon: TrendingUp, label: "本月活跃度", value: `${currentUser.activity}%` },
   ];
@@ -65,7 +69,7 @@ export default function Membership() {
         </div>
         <div className="flex items-center justify-between bg-white/15 rounded-xl px-4 py-2.5">
           <span className="text-sm">积分余额</span>
-          <span className="text-xl font-bold">{currentUser.points}</span>
+          <span className="text-xl font-bold">{displayPoints}</span>
         </div>
       </div>
 
@@ -81,7 +85,7 @@ export default function Membership() {
             <div>
               <div className="flex justify-between text-sm text-gray-600 mb-1.5">
                 <span>回收重量进度</span>
-                <span>{currentUser.totalRecycledWeight}/{nextLevel!.minWeight} kg</span>
+                <span>{displayWeight}/{nextLevel!.minWeight} kg</span>
               </div>
               <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <div

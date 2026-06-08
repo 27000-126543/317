@@ -52,13 +52,13 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-2xl font-bold text-forest-700">{currentUser.points.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-forest-700">{displayPoints.toLocaleString()}</p>
               <p className="text-xs text-forest-500 mt-0.5 flex items-center gap-1">
                 <Star size={12} /> 当前积分
               </p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-forest-700">{currentUser.totalRecycledWeight}kg</p>
+              <p className="text-2xl font-bold text-forest-700">{displayWeight}kg</p>
               <p className="text-xs text-forest-500 mt-0.5 flex items-center gap-1">
                 <Recycle size={12} /> 本月回收量
               </p>

@@ -6,7 +6,7 @@ import { useStore } from "@/store/useStore";
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { products, currentUser, exchangeProduct } = useStore();
+  const { products, currentUser, userRewardMap, exchangeProduct } = useStore();
   const [error, setError] = useState("");
 
   const product = products.find((p) => p.id === id);
@@ -19,7 +19,9 @@ export default function ProductDetail() {
     );
   }
 
-  const canAfford = currentUser.points >= product.pointsPrice;
+  const reward = userRewardMap[currentUser.id];
+  const totalPoints = currentUser.points + (reward?.points || 0);
+  const canAfford = totalPoints >= product.pointsPrice;
   const inStock = product.stock > 0;
 
   const handleExchange = () => {
@@ -88,8 +90,8 @@ export default function ProductDetail() {
         </button>
         {!canAfford && (
           <p className="text-center text-xs text-red-400 mt-2">
-            当前积分 {currentUser.points.toLocaleString()}，还需{" "}
-            {(product.pointsPrice - currentUser.points).toLocaleString()} 积分
+            当前积分 {totalPoints.toLocaleString()}，还需{" "}
+            {(product.pointsPrice - totalPoints).toLocaleString()} 积分
           </p>
         )}
       </div>

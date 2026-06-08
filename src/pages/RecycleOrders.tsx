@@ -21,6 +21,7 @@ const STATUS_CONFIG: Record<
   pending: { label: "待匹配", bg: "bg-yellow-100", text: "text-yellow-700" },
   matched: { label: "已匹配", bg: "bg-blue-100", text: "text-blue-700" },
   accepted: { label: "已接单", bg: "bg-orange-100", text: "text-orange-700" },
+  departed: { label: "已出发", bg: "bg-teal-100", text: "text-teal-700" },
   arrived: { label: "已到达", bg: "bg-purple-100", text: "text-purple-700" },
   weighing: { label: "称重中", bg: "bg-pink-100", text: "text-pink-700" },
   completed: { label: "已完成", bg: "bg-green-100", text: "text-green-700" },
@@ -37,7 +38,7 @@ function filterOrders(orders: RecycleOrder[], tab: TabKey): RecycleOrder[] {
   if (tab === "pending") return orders.filter((o) => o.status === "pending");
   if (tab === "inProgress")
     return orders.filter((o) =>
-      ["matched", "accepted", "arrived", "weighing"].includes(o.status)
+      ["matched", "accepted", "departed", "arrived", "weighing"].includes(o.status)
     );
   return orders.filter((o) => o.status === "completed" || o.status === "cancelled");
 }

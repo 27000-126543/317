@@ -1,5 +1,5 @@
 import { useStore } from "@/store/useStore";
-import { Package, Truck, CheckCircle, Clock, ShoppingBag } from "lucide-react";
+import { Package, Truck, CheckCircle, Clock, ShoppingBag, MapPin, KeyRound, FileText } from "lucide-react";
 import type { ExchangeOrder } from "@/data/mockData";
 
 const statusConfig: Record<
@@ -91,6 +91,29 @@ export default function ExchangeOrders() {
                 );
               })}
             </div>
+
+            {order.pickupInfo && (
+              <div className="bg-forest-50/70 rounded-xl p-3 space-y-2">
+                <p className="text-xs font-bold text-forest-700 flex items-center gap-1">
+                  <MapPin size={12} />
+                  取货通知
+                </p>
+                <div className="space-y-1.5">
+                  <p className="text-xs text-forest-600 flex items-center gap-1.5">
+                    <Clock size={11} className="text-forest-400 flex-shrink-0" />
+                    <span>预计取货时间：{order.pickupInfo.estimatedTime}</span>
+                  </p>
+                  <p className="text-xs text-forest-600 flex items-center gap-1.5">
+                    <KeyRound size={11} className="text-forest-400 flex-shrink-0" />
+                    <span>取货码：<span className="font-bold text-forest-800 tracking-wider">{order.pickupInfo.pickupCode}</span></span>
+                  </p>
+                  <p className="text-xs text-forest-600 flex items-center gap-1.5">
+                    <FileText size={11} className="text-forest-400 flex-shrink-0" />
+                    <span>{order.pickupInfo.instruction}</span>
+                  </p>
+                </div>
+              </div>
+            )}
 
             {order.trackingNumber && (
               <div className="flex items-center justify-between text-xs pt-2 border-t border-forest-50">

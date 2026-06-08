@@ -65,6 +65,10 @@ export default function CommunityEvent() {
       setCheckInMsg("您已签到，请勿重复操作");
       return;
     }
+    if (!hasJoined) {
+      setCheckInMsg("请先报名后再签到");
+      return;
+    }
     const ok = checkInEvent(event.id);
     if (ok) {
       setCheckInMsg(`签到成功！获得${event.checkInPoints}积分`);
@@ -158,31 +162,34 @@ export default function CommunityEvent() {
 
         <div className="flex gap-3">
           {event.status !== "completed" && (
-            <button onClick={handleCheckIn} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full font-medium text-sm transition-all ${
-              hasCheckedIn
-                ? "bg-forest-100 text-forest-500 cursor-default"
-                : "eco-btn-primary"
-            }`}>
-              {hasCheckedIn ? <CheckCircle size={18} /> : <QrCode size={18} />}
-              {hasCheckedIn ? "已签到" : "扫码签到"}
-            </button>
-          )}
-          {event.status !== "completed" && !isFull && (
-            <button
-              onClick={handleJoin}
-              className={`flex-1 py-3 rounded-full font-medium text-sm transition-all ${
-                hasJoined
-                  ? "bg-forest-100 text-forest-500 cursor-default border-2 border-forest-200"
-                  : "eco-btn-outline"
-              }`}
-            >
-              {hasJoined ? "已报名" : "参加活动"}
-            </button>
-          )}
-          {isFull && event.status !== "completed" && (
-            <button disabled className="flex-1 py-3 rounded-full bg-gray-200 text-gray-500 font-medium cursor-not-allowed">
-              人数已满
-            </button>
+            <>
+              {isFull && !hasJoined ? (
+                <button disabled className="flex-1 py-3 rounded-full bg-gray-200 text-gray-500 font-medium cursor-not-allowed">
+                  人数已满
+                </button>
+              ) : (
+                <button
+                  onClick={handleJoin}
+                  className={`flex-1 py-3 rounded-full font-medium text-sm transition-all ${
+                    hasJoined
+                      ? "bg-forest-100 text-forest-500 cursor-default border-2 border-forest-200"
+                      : "eco-btn-outline"
+                  }`}
+                >
+                  {hasJoined ? "已报名" : "参加活动"}
+                </button>
+              )}
+              <button onClick={handleCheckIn} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full font-medium text-sm transition-all ${
+                hasCheckedIn
+                  ? "bg-forest-100 text-forest-500 cursor-default"
+                  : !hasJoined
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "eco-btn-primary"
+              }`}>
+                {hasCheckedIn ? <CheckCircle size={18} /> : <QrCode size={18} />}
+                {hasCheckedIn ? "已签到" : hasJoined ? "扫码签到" : "请先报名"}
+              </button>
+            </>
           )}
           {event.status === "completed" && (
             <button disabled className="flex-1 py-3 rounded-full bg-gray-200 text-gray-500 font-medium cursor-not-allowed">
