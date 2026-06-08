@@ -8,7 +8,8 @@ const STEPS = [
   { key: "pending", label: "提交订单" },
   { key: "matched", label: "匹配回收员" },
   { key: "accepted", label: "回收员接单" },
-  { key: "arrived", label: "上门回收" },
+  { key: "departed", label: "回收员出发" },
+  { key: "arrived", label: "回收员到达" },
   { key: "weighing", label: "称重确认" },
   { key: "completed", label: "完成发放" },
 ];
@@ -17,9 +18,10 @@ const STATUS_ORDER: Record<RecycleOrder["status"], number> = {
   pending: 0,
   matched: 1,
   accepted: 2,
-  arrived: 3,
-  weighing: 4,
-  completed: 5,
+  departed: 3,
+  arrived: 4,
+  weighing: 5,
+  completed: 6,
   cancelled: -1,
 };
 
@@ -27,6 +29,7 @@ const STATUS_LABEL: Record<RecycleOrder["status"], string> = {
   pending: "待匹配",
   matched: "已匹配回收员",
   accepted: "回收员已接单",
+  departed: "回收员已出发",
   arrived: "回收员已到达",
   weighing: "正在称重",
   completed: "已完成",

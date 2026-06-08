@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useStore } from "@/store/useStore";
 import { CATEGORY_ICONS, CATEGORY_LABELS } from "@/data/mockData";
-import { ScanLine, Camera, Scale, CheckCircle, MapPin, Clock, Package, Navigation } from "lucide-react";
+import { ScanLine, Camera, Scale, CheckCircle, MapPin, Clock, Package, Navigation, MapPinned } from "lucide-react";
 
 export default function CollectorActive() {
   const { recycleOrders, currentCollector, updateOrderStatus, completeOrder } = useStore();
@@ -10,7 +10,7 @@ export default function CollectorActive() {
   const activeOrders = recycleOrders.filter(
     (o) =>
       o.collectorId === currentCollector.id &&
-      ["matched", "accepted", "arrived", "weighing"].includes(o.status)
+      ["matched", "accepted", "departed", "arrived", "weighing"].includes(o.status)
   );
 
   if (activeOrders.length === 0) {
@@ -32,6 +32,7 @@ export default function CollectorActive() {
   const statusLabelMap: Record<string, string> = {
     matched: "待接单",
     accepted: "已接单·待出发",
+    departed: "已出发·前往中",
     arrived: "已到达·待扫码",
     weighing: "称重中",
   };
@@ -90,11 +91,21 @@ export default function CollectorActive() {
 
           {order.status === "accepted" && (
             <button
-              onClick={() => updateOrderStatus(order.id, "arrived")}
+              onClick={() => updateOrderStatus(order.id, "departed")}
               className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-forest-600 py-3 text-sm font-medium text-white hover:bg-forest-700 transition-colors"
             >
               <Navigation className="h-4 w-4" />
               出发前往
+            </button>
+          )}
+
+          {order.status === "departed" && (
+            <button
+              onClick={() => updateOrderStatus(order.id, "arrived")}
+              className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-forest-600 py-3 text-sm font-medium text-white hover:bg-forest-700 transition-colors"
+            >
+              <MapPinned className="h-4 w-4" />
+              确认到达
             </button>
           )}
 
