@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, MapPin, Clock, Package, Leaf, PartyPopper, User, Phone, Star } from "lucide-react";
+import { ChevronLeft, MapPin, Clock, Package, Leaf, PartyPopper, User, Phone, Star, CheckCircle, Link as LinkIcon } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { CATEGORY_ICONS, CATEGORY_LABELS } from "@/data/mockData";
 import type { RecycleOrder } from "@/data/mockData";
+import { Link } from "react-router-dom";
 
 const STEPS = [
   { key: "pending", label: "提交订单" },
@@ -41,6 +42,8 @@ export default function RecycleOrderDetail() {
   const navigate = useNavigate();
   const recycleOrders = useStore((s) => s.recycleOrders);
   const currentCollector = useStore((s) => s.currentCollector);
+  const weightHistory = useStore((s) => s.weightHistory);
+  const pointsHistory = useStore((s) => s.pointsHistory);
   const order = recycleOrders.find((o) => o.id === id);
 
   if (!order) {
@@ -88,6 +91,44 @@ export default function RecycleOrderDetail() {
       {isCancelled && (
         <section className="mx-5 mb-5 bg-gray-100 rounded-2xl p-5 text-center">
           <p className="text-lg font-bold text-gray-600">订单已取消</p>
+        </section>
+      )}
+
+      {isCompleted && (
+        <section className="mx-5 mb-5">
+          <div className="eco-card p-4">
+            <h3 className="text-sm font-bold text-forest-800 mb-3 flex items-center gap-2">
+              <LinkIcon size={14} className="text-forest-600" />
+              资产关联
+            </h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-forest-500">回收重量已计入</span>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle size={14} className="text-green-500" />
+                  <span className="text-xs font-medium text-green-600">已计入 {order.actualWeight}kg</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-forest-500">回收积分已发放</span>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle size={14} className="text-green-500" />
+                  <span className="text-xs font-medium text-green-600">已发放 +{order.pointsEarned}积分</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-forest-50">
+                <span className="text-xs text-forest-400">查看明细</span>
+                <div className="flex gap-3">
+                  <Link to="/weight/history" className="text-xs text-forest-600 font-medium hover:underline">
+                    重量明细 →
+                  </Link>
+                  <Link to="/points/history" className="text-xs text-forest-600 font-medium hover:underline">
+                    积分明细 →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
       )}
 

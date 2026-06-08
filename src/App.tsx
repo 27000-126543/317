@@ -12,6 +12,7 @@ import ExchangeOrders from "@/pages/ExchangeOrders";
 import ExchangeOrderDetail from "@/pages/ExchangeOrderDetail";
 import PointsHistory from "@/pages/PointsHistory";
 import WeightHistory from "@/pages/WeightHistory";
+import AssetOverview from "@/pages/AssetOverview";
 import Community from "@/pages/Community";
 import CommunityCreate from "@/pages/CommunityCreate";
 import CommunityEvent from "@/pages/CommunityEvent";
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="mall/order/:id" element={<ExchangeOrderDetail />} />
           <Route path="points/history" element={<PointsHistory />} />
           <Route path="weight/history" element={<WeightHistory />} />
+          <Route path="asset/overview" element={<AssetOverview />} />
           <Route path="community" element={<Community />} />
           <Route path="community/create" element={<CommunityCreate />} />
           <Route path="community/event/:id" element={<CommunityEvent />} />
@@ -74,6 +76,7 @@ export default function App() {
         <Route path="/mall/order/:id" element={<ExchangeOrderDetail />} />
         <Route path="/points/history" element={<PointsHistory />} />
         <Route path="/weight/history" element={<WeightHistory />} />
+        <Route path="/asset/overview" element={<AssetOverview />} />
         <Route path="/community" element={<Community />} />
         <Route path="/community/create" element={<CommunityCreate />} />
         <Route path="/community/event/:id" element={<CommunityEvent />} />

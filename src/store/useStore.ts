@@ -49,10 +49,18 @@ const generatePickupInfo = (): PickupInfo => {
 
 const VOLUNTEER_NAMES = ["王小明", "李丽华", "张建国", "刘美芳", "陈志强", "赵秀英", "周大伟", "吴小兰"];
 
+const CATEGORY_NAMES: Record<string, string> = {
+  paper: "废纸",
+  plastic: "塑料",
+  metal: "金属",
+  electronics: "电子",
+  clothes: "旧衣",
+};
+
 export interface PointsRecord {
   id: string;
   userId: string;
-  type: "recycle_reward" | "event_checkin" | "exchange_deduct";
+  type: "recycle_reward" | "event_checkin" | "exchange_deduct" | "exchange_refund";
   source: string;
   sourceId: string;
   points: number;
@@ -68,6 +76,60 @@ export interface WeightRecord {
   pointsEarned: number;
   createdAt: string;
 }
+
+function buildInitialHistory() {
+  const ph: PointsRecord[] = [];
+  const wh: WeightRecord[] = [];
+  let rewardPoints = 0;
+  let rewardWeight = 0;
+
+  mockRecycleOrders.forEach((order) => {
+    if (order.status === "completed" && order.pointsEarned !== null && order.actualWeight !== null && order.userId === mockUser.id) {
+      ph.push({
+        id: `PR_INIT_${order.id}`,
+        userId: order.userId,
+        type: "recycle_reward",
+        source: `回收${order.categories.map((c) => CATEGORY_NAMES[c] || c).join("/")}`,
+        sourceId: order.id,
+        points: order.pointsEarned,
+        createdAt: order.completedAt || order.createdAt,
+      });
+      wh.push({
+        id: `WR_INIT_${order.id}`,
+        userId: order.userId,
+        orderId: order.id,
+        categories: order.categories,
+        weight: order.actualWeight,
+        pointsEarned: order.pointsEarned,
+        createdAt: order.completedAt || order.createdAt,
+      });
+      rewardPoints += order.pointsEarned;
+      rewardWeight += order.actualWeight;
+    }
+  });
+
+  mockExchangeOrders.forEach((order) => {
+    if (order.userId === mockUser.id && order.status !== "cancelled") {
+      ph.push({
+        id: `PR_INIT_${order.id}`,
+        userId: order.userId,
+        type: "exchange_deduct",
+        source: `兑换${order.productName}`,
+        sourceId: order.id,
+        points: -order.pointsCost,
+        createdAt: order.createdAt,
+      });
+      rewardPoints -= order.pointsCost;
+    }
+  });
+
+  ph.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  wh.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return { pointsHistory: ph, weightHistory: wh, initialRewardMap: { [mockUser.id]: { points: rewardPoints, weight: rewardWeight } } };
+}
+
+const initial = buildInitialHistory();
 
 interface AppState {
   currentUser: User;
@@ -91,6 +153,7 @@ interface AppState {
   completeOrder: (orderId: string, actualWeight: number, photos: string[]) => void;
   exchangeProduct: (productId: string) => void;
   advanceExchangeStatus: (orderId: string) => void;
+  cancelExchange: (orderId: string) => void;
   joinEvent: (eventId: string) => boolean;
   checkInEvent: (eventId: string) => boolean;
   addCommunityEvent: (event: Omit<CommunityEvent, "id" | "currentParticipants" | "volunteers" | "image">) => void;
@@ -98,6 +161,8 @@ interface AppState {
   updateCollectorStatus: (status: "online" | "offline" | "busy") => void;
   getUserPoints: (userId: string) => number;
   getUserWeight: (userId: string) => number;
+  getTotalEarned: (userId: string) => number;
+  getTotalSpent: (userId: string) => number;
 }
 
 export const useStore = create<AppState>()(
@@ -113,9 +178,9 @@ export const useStore = create<AppState>()(
       currentRole: "user",
       joinedEvents: new Set<string>(),
       checkedInEvents: new Set<string>(),
-      userRewardMap: {},
-      pointsHistory: [],
-      weightHistory: [],
+      userRewardMap: initial.initialRewardMap,
+      pointsHistory: initial.pointsHistory,
+      weightHistory: initial.weightHistory,
 
       setCurrentRole: (role) => set({ currentRole: role }),
 
@@ -129,6 +194,18 @@ export const useStore = create<AppState>()(
         const base = userId === get().currentUser.id ? get().currentUser.totalRecycledWeight : 0;
         const earned = get().userRewardMap[userId]?.weight || 0;
         return base + earned;
+      },
+
+      getTotalEarned: (userId) => {
+        return get().pointsHistory
+          .filter((r) => r.userId === userId && r.points > 0)
+          .reduce((sum, r) => sum + r.points, 0);
+      },
+
+      getTotalSpent: (userId) => {
+        return get().pointsHistory
+          .filter((r) => r.userId === userId && r.points < 0)
+          .reduce((sum, r) => sum + Math.abs(r.points), 0);
       },
 
       addRecycleOrder: (order) => {
@@ -178,7 +255,7 @@ export const useStore = create<AppState>()(
           id: `PR${Date.now()}`,
           userId: order.userId,
           type: "recycle_reward",
-          source: `回收${order.categories.map((c) => c === "paper" ? "废纸" : c === "plastic" ? "塑料" : c === "metal" ? "金属" : c === "electronics" ? "电子" : "旧衣").join("/")}`,
+          source: `回收${order.categories.map((c) => CATEGORY_NAMES[c] || c).join("/")}`,
           sourceId: orderId,
           points: totalPoints,
           createdAt: now,
@@ -299,6 +376,38 @@ export const useStore = create<AppState>()(
             };
           }
           return state;
+        });
+      },
+
+      cancelExchange: (orderId) => {
+        const order = get().exchangeOrders.find((o) => o.id === orderId);
+        if (!order || order.status === "delivered" || order.status === "cancelled") return;
+        const user = get().currentUser;
+        const now = new Date().toISOString();
+        const refundRecord: PointsRecord = {
+          id: `PR${Date.now()}`,
+          userId: user.id,
+          type: "exchange_refund",
+          source: `取消兑换${order.productName}`,
+          sourceId: orderId,
+          points: order.pointsCost,
+          createdAt: now,
+        };
+        set((state) => {
+          const reward = state.userRewardMap[user.id] || { points: 0, weight: 0 };
+          return {
+            exchangeOrders: state.exchangeOrders.map((o) =>
+              o.id === orderId ? { ...o, status: "cancelled" as const, cancelledAt: now } : o
+            ),
+            userRewardMap: {
+              ...state.userRewardMap,
+              [user.id]: { ...reward, points: reward.points + order.pointsCost },
+            },
+            products: state.products.map((p) =>
+              p.id === order.productId ? { ...p, stock: p.stock + 1 } : p
+            ),
+            pointsHistory: [refundRecord, ...state.pointsHistory],
+          };
         });
       },
 

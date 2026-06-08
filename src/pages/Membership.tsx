@@ -129,6 +129,19 @@ export default function Membership() {
 
       <div className="space-y-2">
         <Link
+          to="/asset/overview"
+          className="eco-card p-4 flex items-center gap-3 hover:shadow-eco-lg transition-shadow"
+        >
+          <div className="w-10 h-10 rounded-lg bg-forest-100 flex items-center justify-center flex-shrink-0">
+            <TrendingUp className="w-5 h-5 text-forest-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-forest-800">资产总览</p>
+            <p className="text-xs text-forest-400">积分余额、回收重量、趋势一览</p>
+          </div>
+          <ChevronRight size={16} className="text-forest-300" />
+        </Link>
+        <Link
           to="/points/history"
           className="eco-card p-4 flex items-center gap-3 hover:shadow-eco-lg transition-shadow"
         >

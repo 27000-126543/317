@@ -1,6 +1,6 @@
 import { useStore } from "@/store/useStore";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Recycle, Filter } from "lucide-react";
+import { ArrowLeft, Recycle, Filter, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/data/mockData";
 import type { RecycleCategory } from "@/data/mockData";
@@ -18,6 +18,7 @@ export default function WeightHistory() {
   const weightHistory = useStore((s) => s.weightHistory);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [monthFilter, setMonthFilter] = useState("all");
+  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
 
   const displayWeight = getUserWeight(currentUser.id);
   const myHistory = weightHistory.filter((r) => r.userId === currentUser.id);
@@ -58,16 +59,24 @@ export default function WeightHistory() {
   const totalFilteredWeight = filtered.reduce((sum, r) => sum + r.weight, 0);
   const totalFilteredPoints = filtered.reduce((sum, r) => sum + r.pointsEarned, 0);
 
-  const groupedByDate: Record<string, WeightRecord[]> = {};
+  const groupedByMonth: Record<string, WeightRecord[]> = {};
   filtered.forEach((record) => {
-    const dateKey = new Date(record.createdAt).toLocaleDateString("zh-CN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
-    groupedByDate[dateKey].push(record);
+    const d = new Date(record.createdAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!groupedByMonth[key]) groupedByMonth[key] = [];
+    groupedByMonth[key].push(record);
   });
+
+  const getMonthCategoryTotals = (records: WeightRecord[]) => {
+    const totals: Record<string, number> = {};
+    records.forEach((r) => {
+      const perCat = r.weight / r.categories.length;
+      r.categories.forEach((cat) => {
+        totals[cat] = (totals[cat] || 0) + perCat;
+      });
+    });
+    return totals;
+  };
 
   return (
     <div className="pb-8 animate-slide-up">
@@ -180,42 +189,85 @@ export default function WeightHistory() {
         </div>
       )}
 
-      <div className="px-5 mt-4 space-y-5">
-        {Object.entries(groupedByDate).map(([date, records]) => (
-          <div key={date}>
-            <p className="text-xs text-forest-400 font-medium mb-2">{date}</p>
-            <div className="space-y-2">
-              {records.map((record) => (
-                <Link
-                  key={record.id}
-                  to={`/recycle/order/${record.orderId}`}
-                  className="eco-card p-4 flex items-center gap-3 block hover:shadow-eco-lg transition-shadow"
+      <div className="px-5 mt-4 space-y-3">
+        {Object.entries(groupedByMonth)
+          .sort((a, b) => b[0].localeCompare(a[0]))
+          .map(([month, records]) => {
+            const isExpanded = expandedMonth === month;
+            const monthWeight = records.reduce((sum, r) => sum + r.weight, 0);
+            const monthPoints = records.reduce((sum, r) => sum + r.pointsEarned, 0);
+            const catTotals = getMonthCategoryTotals(records);
+
+            return (
+              <div key={month} className="eco-card overflow-hidden">
+                <button
+                  onClick={() => setExpandedMonth(isExpanded ? null : month)}
+                  className="w-full p-4 flex items-center gap-3"
                 >
                   <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
                     <Recycle size={18} className="text-green-600" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {record.categories.map((cat) => (
-                        <span key={cat} className="flex items-center gap-0.5 text-xs text-forest-600">
-                          {CATEGORY_ICONS[cat]}
-                          {CATEGORY_LABELS[cat]}
-                        </span>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-bold text-forest-800">{month}</p>
+                    <div className="flex gap-3 mt-0.5">
+                      <span className="text-xs text-forest-500">{Math.round(monthWeight * 10) / 10}kg</span>
+                      <span className="text-xs text-forest-500">+{monthPoints}积分</span>
+                      <span className="text-xs text-forest-400">{records.length}笔</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-forest-400">
+                    {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <div className="border-t border-forest-50">
+                    <div className="px-4 py-3 bg-forest-50/50">
+                      <p className="text-xs font-medium text-forest-600 mb-1.5">当月品类累计</p>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(catTotals).map(([cat, val]) => (
+                          <span key={cat} className="flex items-center gap-1 text-xs bg-white px-2 py-1 rounded-lg">
+                            {CATEGORY_ICONS[cat as RecycleCategory]}
+                            {CATEGORY_LABELS[cat as RecycleCategory]} {Math.round(val * 10) / 10}kg
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="divide-y divide-forest-50">
+                      {records.map((record) => (
+                        <Link
+                          key={record.id}
+                          to={`/recycle/order/${record.orderId}`}
+                          className="p-4 flex items-center gap-3 hover:bg-forest-50/30 transition-colors"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+                            <Recycle size={14} className="text-green-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {record.categories.map((cat) => (
+                                <span key={cat} className="text-xs text-forest-600">
+                                  {CATEGORY_ICONS[cat]}{CATEGORY_LABELS[cat]}
+                                </span>
+                              ))}
+                            </div>
+                            <p className="text-[10px] text-forest-400 mt-0.5">
+                              {new Date(record.createdAt).toLocaleString("zh-CN")}
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-xs font-bold text-green-600">{record.weight}kg</p>
+                            <p className="text-[10px] text-forest-500">+{record.pointsEarned}积分</p>
+                          </div>
+                        </Link>
                       ))}
                     </div>
-                    <p className="text-xs text-forest-400 mt-0.5">
-                      订单 {record.orderId}
-                    </p>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-green-600">{record.weight}kg</p>
-                    <p className="text-xs text-forest-500">+{record.pointsEarned}积分</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        ))}
+                )}
+              </div>
+            );
+          })}
 
         {filtered.length === 0 && (
           <div className="text-center py-12 text-forest-400">

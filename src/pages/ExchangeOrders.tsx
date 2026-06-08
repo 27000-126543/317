@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useStore } from "@/store/useStore";
-import { Package, Truck, CheckCircle, Clock, ShoppingBag, MapPin, KeyRound, FileText, ChevronRight } from "lucide-react";
+import { Package, Truck, CheckCircle, Clock, ShoppingBag, MapPin, KeyRound, FileText, ChevronRight, XCircle } from "lucide-react";
 import type { ExchangeOrder } from "@/data/mockData";
 
 const statusConfig: Record<
@@ -10,6 +10,7 @@ const statusConfig: Record<
   pending: { label: "待发货", color: "bg-yellow-100 text-yellow-700", icon: Clock },
   shipped: { label: "已发货", color: "bg-blue-100 text-blue-700", icon: Truck },
   delivered: { label: "已签收", color: "bg-green-100 text-green-700", icon: CheckCircle },
+  cancelled: { label: "已取消", color: "bg-gray-100 text-gray-500", icon: XCircle },
 };
 
 export default function ExchangeOrders() {
@@ -57,7 +58,7 @@ export default function ExchangeOrders() {
               </span>
             </div>
 
-            {order.pickupInfo && (
+            {order.pickupInfo && order.status !== "cancelled" && (
               <div className="bg-forest-50/70 rounded-xl p-3 space-y-1.5">
                 <p className="text-xs font-bold text-forest-700 flex items-center gap-1">
                   <MapPin size={12} />
