@@ -9,6 +9,9 @@ import RecycleOrderDetail from "@/pages/RecycleOrderDetail";
 import Mall from "@/pages/Mall";
 import ProductDetail from "@/pages/ProductDetail";
 import ExchangeOrders from "@/pages/ExchangeOrders";
+import ExchangeOrderDetail from "@/pages/ExchangeOrderDetail";
+import PointsHistory from "@/pages/PointsHistory";
+import WeightHistory from "@/pages/WeightHistory";
 import Community from "@/pages/Community";
 import CommunityCreate from "@/pages/CommunityCreate";
 import CommunityEvent from "@/pages/CommunityEvent";
@@ -37,6 +40,9 @@ export default function App() {
           <Route path="mall" element={<Mall />} />
           <Route path="mall/product/:id" element={<ProductDetail />} />
           <Route path="mall/orders" element={<ExchangeOrders />} />
+          <Route path="mall/order/:id" element={<ExchangeOrderDetail />} />
+          <Route path="points/history" element={<PointsHistory />} />
+          <Route path="weight/history" element={<WeightHistory />} />
           <Route path="community" element={<Community />} />
           <Route path="community/create" element={<CommunityCreate />} />
           <Route path="community/event/:id" element={<CommunityEvent />} />
@@ -65,6 +71,9 @@ export default function App() {
         <Route path="/mall" element={<Mall />} />
         <Route path="/mall/product/:id" element={<ProductDetail />} />
         <Route path="/mall/orders" element={<ExchangeOrders />} />
+        <Route path="/mall/order/:id" element={<ExchangeOrderDetail />} />
+        <Route path="/points/history" element={<PointsHistory />} />
+        <Route path="/weight/history" element={<WeightHistory />} />
         <Route path="/community" element={<Community />} />
         <Route path="/community/create" element={<CommunityCreate />} />
         <Route path="/community/event/:id" element={<CommunityEvent />} />

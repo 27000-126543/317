@@ -1,6 +1,7 @@
+import { Link } from "react-router-dom";
 import { useStore } from "@/store/useStore";
 import { MEMBER_LEVELS } from "@/data/mockData";
-import { Crown, TrendingUp, Award, Bell, Check, Lock, Star, Recycle, Shield } from "lucide-react";
+import { Crown, TrendingUp, Award, Bell, Check, Lock, Star, Recycle, Shield, ChevronRight } from "lucide-react";
 
 const LEVEL_ORDER: Array<"normal" | "silver" | "gold" | "diamond"> = ["normal", "silver", "gold", "diamond"];
 
@@ -124,6 +125,35 @@ export default function Membership() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="space-y-2">
+        <Link
+          to="/points/history"
+          className="eco-card p-4 flex items-center gap-3 hover:shadow-eco-lg transition-shadow"
+        >
+          <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <Star className="w-5 h-5 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-forest-800">积分明细</p>
+            <p className="text-xs text-forest-400">查看积分增减记录</p>
+          </div>
+          <ChevronRight size={16} className="text-forest-300" />
+        </Link>
+        <Link
+          to="/weight/history"
+          className="eco-card p-4 flex items-center gap-3 hover:shadow-eco-lg transition-shadow"
+        >
+          <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+            <Recycle className="w-5 h-5 text-green-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-forest-800">回收重量明细</p>
+            <p className="text-xs text-forest-400">按品类和月份查看回收记录</p>
+          </div>
+          <ChevronRight size={16} className="text-forest-300" />
+        </Link>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm">
