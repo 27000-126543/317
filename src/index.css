@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap');
+
+:root {
+  font-family: "Noto Sans SC", "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  body {
+    @apply bg-forest-50 text-forest-900 font-body;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-glass rounded-2xl;
+  }
+
+  .eco-btn-primary {
+    @apply bg-card-gradient text-white px-6 py-3 rounded-full font-medium shadow-eco
+           hover:shadow-eco-lg transition-all duration-300 hover:scale-105 active:scale-95;
+  }
+
+  .eco-btn-accent {
+    @apply bg-accent-gradient text-white px-6 py-3 rounded-full font-medium shadow-md
+           hover:shadow-lg transition-all duration-300 hover:scale-105 active:scale-95;
+  }
+
+  .eco-btn-outline {
+    @apply border-2 border-forest-700 text-forest-700 px-6 py-2.5 rounded-full font-medium
+           hover:bg-forest-700 hover:text-white transition-all duration-300;
+  }
+
+  .eco-card {
+    @apply bg-white rounded-2xl shadow-eco hover:shadow-eco-lg transition-all duration-300;
+  }
+
+  .eco-input {
+    @apply w-full px-4 py-3 rounded-xl border border-forest-200 bg-white/80
+           focus:outline-none focus:ring-2 focus:ring-forest-300 focus:border-forest-500
+           transition-all duration-200 placeholder:text-forest-400;
+  }
+
+  .eco-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .eco-tab {
+    @apply px-4 py-2 rounded-full text-sm font-medium transition-all duration-200;
+  }
+
+  .eco-tab-active {
+    @apply bg-forest-700 text-white shadow-eco;
+  }
+
+  .eco-tab-inactive {
+    @apply text-forest-600 hover:bg-forest-100;
+  }
+
+  .section-title {
+    @apply text-lg font-bold text-forest-800 font-display;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-forest-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-forest-400;
+}
