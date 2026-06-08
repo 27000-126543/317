@@ -6,7 +6,7 @@ import { useStore } from "@/store/useStore";
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { products, currentUser, userRewardMap, exchangeProduct } = useStore();
+  const { products, currentUser, getUserPoints, exchangeProduct } = useStore();
   const [error, setError] = useState("");
 
   const product = products.find((p) => p.id === id);
@@ -19,8 +19,7 @@ export default function ProductDetail() {
     );
   }
 
-  const reward = userRewardMap[currentUser.id];
-  const totalPoints = currentUser.points + (reward?.points || 0);
+  const totalPoints = getUserPoints(currentUser.id);
   const canAfford = totalPoints >= product.pointsPrice;
   const inStock = product.stock > 0;
 

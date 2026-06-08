@@ -29,10 +29,10 @@ const NotificationCard = () => {
 
 export default function Membership() {
   const currentUser = useStore((s) => s.currentUser);
-  const userRewardMap = useStore((s) => s.userRewardMap);
-  const reward = userRewardMap[currentUser.id];
-  const displayPoints = currentUser.points + (reward?.points || 0);
-  const displayWeight = currentUser.totalRecycledWeight + (reward?.weight || 0);
+  const getUserPoints = useStore((s) => s.getUserPoints);
+  const getUserWeight = useStore((s) => s.getUserWeight);
+  const displayPoints = getUserPoints(currentUser.id);
+  const displayWeight = getUserWeight(currentUser.id);
   const currentLevel = MEMBER_LEVELS[currentUser.memberLevel];
   const levelIndex = LEVEL_ORDER.indexOf(currentUser.memberLevel);
   const isMaxLevel = levelIndex === LEVEL_ORDER.length - 1;

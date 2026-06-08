@@ -6,7 +6,10 @@ import { useStore } from "@/store/useStore";
 const categories = ["全部", "生活用品", "数码产品", "厨房用品", "园艺", "文具"];
 
 export default function Mall() {
-  const { currentUser, products } = useStore();
+  const currentUser = useStore((s) => s.currentUser);
+  const getUserPoints = useStore((s) => s.getUserPoints);
+  const products = useStore((s) => s.products);
+  const displayPoints = getUserPoints(currentUser.id);
   const [activeCategory, setActiveCategory] = useState("全部");
 
   const filtered =
@@ -23,7 +26,7 @@ export default function Mall() {
             <span className="font-medium">我的积分</span>
           </div>
           <span className="text-2xl font-bold">
-            {currentUser.points.toLocaleString()}
+            {displayPoints.toLocaleString()}
           </span>
         </div>
       </div>

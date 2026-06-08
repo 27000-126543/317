@@ -8,10 +8,10 @@ const categories: RecycleCategory[] = ["paper", "plastic", "metal", "electronics
 
 export default function Home() {
   const currentUser = useStore((s) => s.currentUser);
-  const userRewardMap = useStore((s) => s.userRewardMap);
-  const reward = userRewardMap[currentUser.id];
-  const displayPoints = currentUser.points + (reward?.points || 0);
-  const displayWeight = currentUser.totalRecycledWeight + (reward?.weight || 0);
+  const getUserPoints = useStore((s) => s.getUserPoints);
+  const getUserWeight = useStore((s) => s.getUserWeight);
+  const displayPoints = getUserPoints(currentUser.id);
+  const displayWeight = getUserWeight(currentUser.id);
   const level = MEMBER_LEVELS[currentUser.memberLevel];
 
   return (

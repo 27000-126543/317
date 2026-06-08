@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type {
   User,
   RecycleOrder,
@@ -48,6 +49,26 @@ const generatePickupInfo = (): PickupInfo => {
 
 const VOLUNTEER_NAMES = ["王小明", "李丽华", "张建国", "刘美芳", "陈志强", "赵秀英", "周大伟", "吴小兰"];
 
+export interface PointsRecord {
+  id: string;
+  userId: string;
+  type: "recycle_reward" | "event_checkin" | "exchange_deduct";
+  source: string;
+  sourceId: string;
+  points: number;
+  createdAt: string;
+}
+
+export interface WeightRecord {
+  id: string;
+  userId: string;
+  orderId: string;
+  categories: RecycleCategory[];
+  weight: number;
+  pointsEarned: number;
+  createdAt: string;
+}
+
 interface AppState {
   currentUser: User;
   currentCollector: Collector;
@@ -60,6 +81,8 @@ interface AppState {
   joinedEvents: Set<string>;
   checkedInEvents: Set<string>;
   userRewardMap: Record<string, { points: number; weight: number }>;
+  pointsHistory: PointsRecord[];
+  weightHistory: WeightRecord[];
 
   setCurrentRole: (role: "user" | "collector" | "admin") => void;
   addRecycleOrder: (order: Omit<RecycleOrder, "id" | "createdAt" | "status" | "pointsEarned" | "actualWeight" | "photos" | "collectorRating" | "completedAt" | "collectorId">) => void;
@@ -67,6 +90,7 @@ interface AppState {
   updateOrderStatus: (orderId: string, status: RecycleOrder["status"]) => void;
   completeOrder: (orderId: string, actualWeight: number, photos: string[]) => void;
   exchangeProduct: (productId: string) => void;
+  advanceExchangeStatus: (orderId: string) => void;
   joinEvent: (eventId: string) => boolean;
   checkInEvent: (eventId: string) => boolean;
   addCommunityEvent: (event: Omit<CommunityEvent, "id" | "currentParticipants" | "volunteers" | "image">) => void;
@@ -76,207 +100,309 @@ interface AppState {
   getUserWeight: (userId: string) => number;
 }
 
-export const useStore = create<AppState>((set, get) => ({
-  currentUser: mockUser,
-  currentCollector: mockCollector,
-  recycleOrders: mockRecycleOrders,
-  products: mockProducts,
-  exchangeOrders: mockExchangeOrders,
-  communityEvents: mockCommunityEvents,
-  dashboardData: mockDashboardData,
-  currentRole: "user",
-  joinedEvents: new Set<string>(),
-  checkedInEvents: new Set<string>(),
-  userRewardMap: {},
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      currentUser: mockUser,
+      currentCollector: mockCollector,
+      recycleOrders: mockRecycleOrders,
+      products: mockProducts,
+      exchangeOrders: mockExchangeOrders,
+      communityEvents: mockCommunityEvents,
+      dashboardData: mockDashboardData,
+      currentRole: "user",
+      joinedEvents: new Set<string>(),
+      checkedInEvents: new Set<string>(),
+      userRewardMap: {},
+      pointsHistory: [],
+      weightHistory: [],
 
-  setCurrentRole: (role) => set({ currentRole: role }),
+      setCurrentRole: (role) => set({ currentRole: role }),
 
-  getUserPoints: (userId) => {
-    const base = userId === get().currentUser.id ? get().currentUser.points : 0;
-    const earned = get().userRewardMap[userId]?.points || 0;
-    return base + earned;
-  },
+      getUserPoints: (userId) => {
+        const base = userId === get().currentUser.id ? get().currentUser.points : 0;
+        const earned = get().userRewardMap[userId]?.points || 0;
+        return base + earned;
+      },
 
-  getUserWeight: (userId) => {
-    const base = userId === get().currentUser.id ? get().currentUser.totalRecycledWeight : 0;
-    const earned = get().userRewardMap[userId]?.weight || 0;
-    return base + earned;
-  },
+      getUserWeight: (userId) => {
+        const base = userId === get().currentUser.id ? get().currentUser.totalRecycledWeight : 0;
+        const earned = get().userRewardMap[userId]?.weight || 0;
+        return base + earned;
+      },
 
-  addRecycleOrder: (order) => {
-    const collector = get().currentCollector;
-    const isOnline = collector.status === "online" || collector.status === "busy";
-    const newOrder: RecycleOrder = {
-      ...order,
-      id: `RO${Date.now()}`,
-      status: isOnline ? "matched" : "pending",
-      pointsEarned: null,
-      actualWeight: null,
-      photos: [],
-      collectorRating: null,
-      completedAt: null,
-      collectorId: isOnline ? collector.id : null,
-      createdAt: new Date().toISOString(),
-    };
-    set((state) => ({ recycleOrders: [newOrder, ...state.recycleOrders] }));
-  },
+      addRecycleOrder: (order) => {
+        const collector = get().currentCollector;
+        const isOnline = collector.status === "online" || collector.status === "busy";
+        const newOrder: RecycleOrder = {
+          ...order,
+          id: `RO${Date.now()}`,
+          status: isOnline ? "matched" : "pending",
+          pointsEarned: null,
+          actualWeight: null,
+          photos: [],
+          collectorRating: null,
+          completedAt: null,
+          collectorId: isOnline ? collector.id : null,
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({ recycleOrders: [newOrder, ...state.recycleOrders] }));
+      },
 
-  acceptOrder: (orderId) => {
-    set((state) => ({
-      recycleOrders: state.recycleOrders.map((o) =>
-        o.id === orderId ? { ...o, status: "accepted" as const, collectorId: state.currentCollector.id } : o
-      ),
-    }));
-  },
+      acceptOrder: (orderId) => {
+        set((state) => ({
+          recycleOrders: state.recycleOrders.map((o) =>
+            o.id === orderId ? { ...o, status: "accepted" as const, collectorId: state.currentCollector.id } : o
+          ),
+        }));
+      },
 
-  updateOrderStatus: (orderId, status) => {
-    set((state) => ({
-      recycleOrders: state.recycleOrders.map((o) =>
-        o.id === orderId ? { ...o, status } : o
-      ),
-    }));
-  },
+      updateOrderStatus: (orderId, status) => {
+        set((state) => ({
+          recycleOrders: state.recycleOrders.map((o) =>
+            o.id === orderId ? { ...o, status } : o
+          ),
+        }));
+      },
 
-  completeOrder: (orderId, actualWeight, photos) => {
-    const order = get().recycleOrders.find((o) => o.id === orderId);
-    if (!order) return;
-    let totalPoints = 0;
-    order.categories.forEach((cat) => {
-      totalPoints += actualWeight * CATEGORY_POINTS_PER_KG[cat];
-    });
-    totalPoints = Math.round(totalPoints / order.categories.length);
-    set((state) => {
-      const prevReward = state.userRewardMap[order.userId] || { points: 0, weight: 0 };
-      return {
-        recycleOrders: state.recycleOrders.map((o) =>
-          o.id === orderId
-            ? { ...o, status: "completed" as const, actualWeight, photos, pointsEarned: totalPoints, completedAt: new Date().toISOString() }
-            : o
-        ),
-        userRewardMap: {
-          ...state.userRewardMap,
-          [order.userId]: {
-            points: prevReward.points + totalPoints,
-            weight: prevReward.weight + actualWeight,
-          },
-        },
-      };
-    });
-  },
+      completeOrder: (orderId, actualWeight, photos) => {
+        const order = get().recycleOrders.find((o) => o.id === orderId);
+        if (!order) return;
+        let totalPoints = 0;
+        order.categories.forEach((cat) => {
+          totalPoints += actualWeight * CATEGORY_POINTS_PER_KG[cat];
+        });
+        totalPoints = Math.round(totalPoints / order.categories.length);
+        const now = new Date().toISOString();
+        const pointsRecord: PointsRecord = {
+          id: `PR${Date.now()}`,
+          userId: order.userId,
+          type: "recycle_reward",
+          source: `回收${order.categories.map((c) => c === "paper" ? "废纸" : c === "plastic" ? "塑料" : c === "metal" ? "金属" : c === "electronics" ? "电子" : "旧衣").join("/")}`,
+          sourceId: orderId,
+          points: totalPoints,
+          createdAt: now,
+        };
+        const weightRecord: WeightRecord = {
+          id: `WR${Date.now()}`,
+          userId: order.userId,
+          orderId,
+          categories: order.categories,
+          weight: actualWeight,
+          pointsEarned: totalPoints,
+          createdAt: now,
+        };
+        set((state) => {
+          const prevReward = state.userRewardMap[order.userId] || { points: 0, weight: 0 };
+          return {
+            recycleOrders: state.recycleOrders.map((o) =>
+              o.id === orderId
+                ? { ...o, status: "completed" as const, actualWeight, photos, pointsEarned: totalPoints, completedAt: now }
+                : o
+            ),
+            userRewardMap: {
+              ...state.userRewardMap,
+              [order.userId]: {
+                points: prevReward.points + totalPoints,
+                weight: prevReward.weight + actualWeight,
+              },
+            },
+            pointsHistory: [pointsRecord, ...state.pointsHistory],
+            weightHistory: [weightRecord, ...state.weightHistory],
+          };
+        });
+      },
 
-  exchangeProduct: (productId) => {
-    const product = get().products.find((p) => p.id === productId);
-    if (!product) return;
-    const user = get().currentUser;
-    const availablePoints = user.points + (get().userRewardMap[user.id]?.points || 0);
-    if (availablePoints < product.pointsPrice) return;
-    if (product.stock <= 0) return;
-    const trackingNumber = generateTrackingNumber();
-    const pickupInfo = generatePickupInfo();
-    const now = new Date().toISOString();
-    const newExchange: ExchangeOrder = {
-      id: `EO${Date.now()}`,
-      userId: user.id,
-      productId: product.id,
-      productName: product.name,
-      productImage: product.image,
-      pointsCost: product.pointsPrice,
-      status: "shipped",
-      trackingNumber,
-      pickupInfo,
-      createdAt: now,
-      shippedAt: now,
-    };
-    set((state) => {
-      const reward = state.userRewardMap[user.id];
-      if (reward && reward.points >= product.pointsPrice) {
-        return {
-          exchangeOrders: [newExchange, ...state.exchangeOrders],
+      exchangeProduct: (productId) => {
+        const product = get().products.find((p) => p.id === productId);
+        if (!product) return;
+        const user = get().currentUser;
+        const availablePoints = user.points + (get().userRewardMap[user.id]?.points || 0);
+        if (availablePoints < product.pointsPrice) return;
+        if (product.stock <= 0) return;
+        const trackingNumber = generateTrackingNumber();
+        const pickupInfo = generatePickupInfo();
+        const now = new Date().toISOString();
+        const newExchange: ExchangeOrder = {
+          id: `EO${Date.now()}`,
+          userId: user.id,
+          productId: product.id,
+          productName: product.name,
+          productImage: product.image,
+          pointsCost: product.pointsPrice,
+          status: "shipped",
+          trackingNumber,
+          pickupInfo,
+          createdAt: now,
+          shippedAt: now,
+        };
+        const pointsRecord: PointsRecord = {
+          id: `PR${Date.now()}`,
+          userId: user.id,
+          type: "exchange_deduct",
+          source: `兑换${product.name}`,
+          sourceId: newExchange.id,
+          points: -product.pointsPrice,
+          createdAt: now,
+        };
+        set((state) => {
+          const reward = state.userRewardMap[user.id];
+          if (reward && reward.points >= product.pointsPrice) {
+            return {
+              exchangeOrders: [newExchange, ...state.exchangeOrders],
+              userRewardMap: {
+                ...state.userRewardMap,
+                [user.id]: { ...reward, points: reward.points - product.pointsPrice },
+              },
+              products: state.products.map((p) =>
+                p.id === productId ? { ...p, stock: Math.max(0, p.stock - 1) } : p
+              ),
+              pointsHistory: [pointsRecord, ...state.pointsHistory],
+            };
+          }
+          const remaining = product.pointsPrice - (reward?.points || 0);
+          return {
+            exchangeOrders: [newExchange, ...state.exchangeOrders],
+            currentUser: {
+              ...state.currentUser,
+              points: state.currentUser.points - remaining,
+            },
+            userRewardMap: {
+              ...state.userRewardMap,
+              [user.id]: { ...reward, points: 0 },
+            },
+            products: state.products.map((p) =>
+              p.id === productId ? { ...p, stock: Math.max(0, p.stock - 1) } : p
+            ),
+            pointsHistory: [pointsRecord, ...state.pointsHistory],
+          };
+        });
+      },
+
+      advanceExchangeStatus: (orderId) => {
+        set((state) => {
+          const order = state.exchangeOrders.find((o) => o.id === orderId);
+          if (!order) return state;
+          const now = new Date().toISOString();
+          if (order.status === "pending") {
+            return {
+              exchangeOrders: state.exchangeOrders.map((o) =>
+                o.id === orderId ? { ...o, status: "shipped" as const, shippedAt: now } : o
+              ),
+            };
+          }
+          if (order.status === "shipped") {
+            return {
+              exchangeOrders: state.exchangeOrders.map((o) =>
+                o.id === orderId ? { ...o, status: "delivered" as const, deliveredAt: now } : o
+              ),
+            };
+          }
+          return state;
+        });
+      },
+
+      joinEvent: (eventId) => {
+        const state = get();
+        if (state.joinedEvents.has(eventId)) return false;
+        const event = state.communityEvents.find((e) => e.id === eventId);
+        if (!event || event.currentParticipants >= event.maxParticipants) return false;
+        set((state) => ({
+          communityEvents: state.communityEvents.map((e) =>
+            e.id === eventId ? { ...e, currentParticipants: e.currentParticipants + 1 } : e
+          ),
+          joinedEvents: new Set([...state.joinedEvents, eventId]),
+        }));
+        return true;
+      },
+
+      checkInEvent: (eventId) => {
+        const state = get();
+        if (!state.joinedEvents.has(eventId)) return false;
+        if (state.checkedInEvents.has(eventId)) return false;
+        const event = state.communityEvents.find((e) => e.id === eventId);
+        if (!event) return false;
+        const now = new Date().toISOString();
+        const pointsRecord: PointsRecord = {
+          id: `PR${Date.now()}`,
+          userId: state.currentUser.id,
+          type: "event_checkin",
+          source: `签到${event.title}`,
+          sourceId: eventId,
+          points: event.checkInPoints,
+          createdAt: now,
+        };
+        set((state) => ({
           userRewardMap: {
             ...state.userRewardMap,
-            [user.id]: { ...reward, points: reward.points - product.pointsPrice },
+            [state.currentUser.id]: {
+              points: (state.userRewardMap[state.currentUser.id]?.points || 0) + event.checkInPoints,
+              weight: state.userRewardMap[state.currentUser.id]?.weight || 0,
+            },
           },
-          products: state.products.map((p) =>
-            p.id === productId ? { ...p, stock: Math.max(0, p.stock - 1) } : p
-          ),
-        };
-      }
-      const remaining = product.pointsPrice - (reward?.points || 0);
-      return {
-        exchangeOrders: [newExchange, ...state.exchangeOrders],
-        currentUser: {
-          ...state.currentUser,
-          points: state.currentUser.points - remaining,
-        },
-        userRewardMap: {
-          ...state.userRewardMap,
-          [user.id]: { ...reward, points: 0 },
-        },
-        products: state.products.map((p) =>
-          p.id === productId ? { ...p, stock: Math.max(0, p.stock - 1) } : p
-        ),
-      };
-    });
-  },
-
-  joinEvent: (eventId) => {
-    const state = get();
-    if (state.joinedEvents.has(eventId)) return false;
-    const event = state.communityEvents.find((e) => e.id === eventId);
-    if (!event || event.currentParticipants >= event.maxParticipants) return false;
-    set((state) => ({
-      communityEvents: state.communityEvents.map((e) =>
-        e.id === eventId ? { ...e, currentParticipants: e.currentParticipants + 1 } : e
-      ),
-      joinedEvents: new Set([...state.joinedEvents, eventId]),
-    }));
-    return true;
-  },
-
-  checkInEvent: (eventId) => {
-    const state = get();
-    if (!state.joinedEvents.has(eventId)) return false;
-    if (state.checkedInEvents.has(eventId)) return false;
-    const event = state.communityEvents.find((e) => e.id === eventId);
-    if (!event) return false;
-    set((state) => ({
-      userRewardMap: {
-        ...state.userRewardMap,
-        [state.currentUser.id]: {
-          points: (state.userRewardMap[state.currentUser.id]?.points || 0) + event.checkInPoints,
-          weight: state.userRewardMap[state.currentUser.id]?.weight || 0,
-        },
+          checkedInEvents: new Set([...state.checkedInEvents, eventId]),
+          pointsHistory: [pointsRecord, ...state.pointsHistory],
+        }));
+        return true;
       },
-      checkedInEvents: new Set([...state.checkedInEvents, eventId]),
-    }));
-    return true;
-  },
 
-  addCommunityEvent: (eventInput) => {
-    const volunteerCount = Math.floor(Math.random() * 4) + 2;
-    const shuffled = [...VOLUNTEER_NAMES].sort(() => Math.random() - 0.5);
-    const volunteers = shuffled.slice(0, volunteerCount);
-    const newEvent: CommunityEvent = {
-      ...eventInput,
-      id: `e${Date.now()}`,
-      currentParticipants: 0,
-      volunteers,
-      image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=community recycling event eco green volunteers&image_size=landscape_16_9",
-    };
-    set((state) => ({
-      communityEvents: [newEvent, ...state.communityEvents],
-    }));
-  },
+      addCommunityEvent: (eventInput) => {
+        const volunteerCount = Math.floor(Math.random() * 4) + 2;
+        const shuffled = [...VOLUNTEER_NAMES].sort(() => Math.random() - 0.5);
+        const volunteers = shuffled.slice(0, volunteerCount);
+        const newEvent: CommunityEvent = {
+          ...eventInput,
+          id: `e${Date.now()}`,
+          currentParticipants: 0,
+          volunteers,
+          image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=community recycling event eco green volunteers&image_size=landscape_16_9",
+        };
+        set((state) => ({
+          communityEvents: [newEvent, ...state.communityEvents],
+        }));
+      },
 
-  addPoints: (points) => {
-    set((state) => ({
-      currentUser: { ...state.currentUser, points: state.currentUser.points + points },
-    }));
-  },
+      addPoints: (points) => {
+        set((state) => ({
+          currentUser: { ...state.currentUser, points: state.currentUser.points + points },
+        }));
+      },
 
-  updateCollectorStatus: (status) => {
-    set((state) => ({
-      currentCollector: { ...state.currentCollector, status },
-    }));
-  },
-}));
+      updateCollectorStatus: (status) => {
+        set((state) => ({
+          currentCollector: { ...state.currentCollector, status },
+        }));
+      },
+    }),
+    {
+      name: "lvxun-app-storage",
+      partialize: (state) => ({
+        exchangeOrders: state.exchangeOrders,
+        userRewardMap: state.userRewardMap,
+        products: state.products,
+        joinedEvents: Array.from(state.joinedEvents),
+        checkedInEvents: Array.from(state.checkedInEvents),
+        pointsHistory: state.pointsHistory,
+        weightHistory: state.weightHistory,
+        recycleOrders: state.recycleOrders,
+      }),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<AppState> & {
+          joinedEvents?: string[];
+          checkedInEvents?: string[];
+        };
+        return {
+          ...current,
+          ...(p.exchangeOrders ? { exchangeOrders: p.exchangeOrders } : {}),
+          ...(p.userRewardMap ? { userRewardMap: p.userRewardMap } : {}),
+          ...(p.products ? { products: p.products } : {}),
+          ...(p.joinedEvents ? { joinedEvents: new Set(p.joinedEvents) } : {}),
+          ...(p.checkedInEvents ? { checkedInEvents: new Set(p.checkedInEvents) } : {}),
+          ...(p.pointsHistory ? { pointsHistory: p.pointsHistory } : {}),
+          ...(p.weightHistory ? { weightHistory: p.weightHistory } : {}),
+          ...(p.recycleOrders ? { recycleOrders: p.recycleOrders } : {}),
+        };
+      },
+    }
+  )
+);
